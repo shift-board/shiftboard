@@ -7,16 +7,14 @@ from board.forms import PostForm
 class Board(View):
     """
     The landing page serving the React single page board app.
+
     This includes displaying the board, the creating post page, and the viewing post popup.
 
-    This can be found at the path 
-    >>> '/board-name-hash'
+    This can be found at the path '/board-name-hash'.
     """
 
     def get(self):
-        """
-        Get the index.html of the React app.
-        """
+        """Get the index.html of the React app."""
         #TODO: write the board app frontend
         board = '<h1>this is the board</h1>'
         return HttpResponse(board)
@@ -25,6 +23,7 @@ class Board(View):
 class GetPosts(View):
     """
     An API to get the number of posts for a board from a certain index.
+
     This is to ensure that the client does not try to load in all the posts at once,
     but rather request the number of posts needed as the user is scrolling down.
 
@@ -35,6 +34,8 @@ class GetPosts(View):
 
     def get(self):
         """
+        Get the data from the database and send a JSON response.
+
         Get the `index` and `amount` from the query string params.
         Then, get the corresponding data from the database and send back a JSON response
         to the client.
@@ -42,6 +43,9 @@ class GetPosts(View):
         For example, if the user wished to load 30 more posts starting from the 51th post,
         the query string would be index=50&amount=30. The index is zero-based, inclusive at start
         and exclusive at the end.
+
+        Returns:
+            A JSON representation of the posts.
         """
         index = self.request.GET.get('index')
         amount = self.request.GET.get('amount')
@@ -53,6 +57,7 @@ class GetPosts(View):
 class CreatePost(View):
     """
     The API endpoint responsible for handling new post creations.
+
     The users do not need accounts to add a new post. This app is under the assumption
     that only the people with the board link can add posts to it and for simplicity reasons
     for the user, all posts are automatically approved unless the board admin removes it.
@@ -64,12 +69,18 @@ class CreatePost(View):
 
     def post(self):
         """
-        The user will post form data with the following attached:
-        - name (optional)
-        - message
-        - photo(s)
+        Adds the post to the database and return a response correspondingly.
+
         Either message/photo must exist for the POST request to be valid.
         This will be added to the database along with a created_at timestamp.
+        
+        The user will post form data with the following attached:
+        Fields:
+            name -> string: the author of the post, optional.
+            message -> string: the message the user wish to convey.
+            photo -> Images: the photos the user uploads.
+        Returns:
+            A response of either status `204` for success or `422` for invalid data.
         """
         form = PostForm(self.request.POST, self.request.FILES)
         if (form.is_valid()):
