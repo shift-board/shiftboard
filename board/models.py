@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -7,7 +9,7 @@ from django.db import models
 class Board(models.Model):
     """
     A database model representing a board, where posts can be created and viewed.
-
+    
     This model uses a `BinaryField` as opposed to an `ImageField` to store the background image of
     the board. While this is considered poor design in many cases, Heroku (the cloud provider
     to be used)'s ephemeral file system renders the file system impossible to use for dynamic
@@ -24,10 +26,10 @@ class Board(models.Model):
     one specific board. Provided is an example:
 
     ```
-    # generate and save mock users and boards
+    # generate and save mock users and boards. User is the default Django auth user.
     >>> u1 = User(username="shari", password="i love you") 
     >>> u1.save() # important! Save to generate an id
-    >>> b1 = Board(name="shari fan club", description="a fan club for shari"...)
+    >>> b1 = Board(title="shari fan club", description="a fan club for shari"...)
     >>> b1.save()
 
     # add u1 as admin user to b1
@@ -52,6 +54,7 @@ class Board(models.Model):
         description -> `CharField`: A charfield with max length 500 containing the title of the board.
         bg -> `BinaryField`: A field with the background image BLOB.
         admin_users -> `ManyToManyField`: A field storing the many admin users of this board.
+        uuid -> `UUIDField`: A unique, non-editable uuid4 UUID for each board.
     """
     # TODO: look into if we need a lookup table.
 
@@ -59,10 +62,11 @@ class Board(models.Model):
     description = models.CharField(max_length=200)
     bg = models.BinaryField()
     admin_users = models.ManyToManyField(User)
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     def __str__(self):
-        """Returns the title, which is the string representation of this model."""
-        return self.title
+        """Returns the title and the UUID of this board."""
+        return f'{self.title} - {self.uuid}'
 
 class Post(models.Model):
     """
@@ -76,21 +80,20 @@ class Post(models.Model):
 
     Class Attributes
         associated_board -> `ForeignKey`: The foreign key for the board that this post is on.
-        author -> `CharField`: A charfield with max length 50 containing the author's name. Optional.
-        description -> `CharField`: A charfield with max length 500 containing the description
-            of the post. Optional, but if not included, should contain a picture. Validation will
-            be performed at the API level, as the database does not care if a post has no picture
-            and description.
-        picture -> `BinaryField`: A field containing the post's image. Optional, but if not 
+        name -> `CharField`: A charfield with max length 50 containing the author's name. Optional.
+        message -> `CharField`: A charfield with max length 500 containing the specified message.
+            Optional, but if not included, should contain a picture. Validation will be performed
+            at the API level, as the database does not care if a post has no picture and description.
+        photo -> `BinaryField`: A field containing the post's image. Optional, but if not 
             included, should contain a description. Validation will be performed at the API level,
             as the database does not care if a post has no picture and description.
     """
 
     associated_board = models.ForeignKey(Board, on_delete=models.CASCADE)
-    author = models.CharField(max_length=50, blank=True)
-    description = models.CharField(max_length=500, blank=True)
-    picture = models.BinaryField(blank=True)
+    name = models.CharField(max_length=50, blank=True)
+    message = models.CharField(max_length=500, blank=True)
+    photo = models.BinaryField(blank=True)
 
     def __str__(self):
-        """Returns the board id, author, and description of the post."""
-        return f"{self.associated_board}: {self.author} -- {self.description}"
+        """Returns the board name, author name, and message of the post."""
+        return f"{self.associated_board}: {self.name} -- {self.message}"
