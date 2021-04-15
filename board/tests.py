@@ -6,17 +6,22 @@ from .models import Board, Post
 # Create your tests here.
 
 class BoardModelTests(TestCase):
+  """
+  A class with tests for testing relationships with the `Board` database model.
+  """
+
   @tag('core')
   def test_board_post_connections(self):
+    """Make sure that posts to a board are properly associated and posts acn be found."""
     b1 = Board(title="foo", description="bar", bg=bytearray("biv", "utf-8"))
     b2 = Board(title="foo2", description="bar", bg=bytearray("biv", "utf-8"))
     b1.save()
     b2.save()
 
-    p1 = Post(associated_board=b1, author="a", description="b")
-    p2 = Post(associated_board=b1, author="a", picture=bytearray("biv", "utf-8"))
-    p3 = Post(associated_board=b2, author="a", description="b")
-    p4 = Post(associated_board=b1, author="a", description="b")
+    p1 = Post(associated_board=b1, name="a", message="b")
+    p2 = Post(associated_board=b1, name="a", photo=bytearray("biv", "utf-8"))
+    p3 = Post(associated_board=b2, name="a", message="b")
+    p4 = Post(associated_board=b1, name="a", message="b")
     p1.save()
     p2.save()
     p3.save()
@@ -27,6 +32,7 @@ class BoardModelTests(TestCase):
 
   @tag('core')
   def test_admin_board_connections(self):
+    """Make sure that admins for a board are properly associated and vice versa."""
     b1 = Board(title="foo", description="bar", bg=bytearray("biv", "utf-8"))
     b2 = Board(title="foo2", description="bar", bg=bytearray("biv", "utf-8"))
     b3 = Board(title="foo3", description="bar", bg=bytearray("biv", "utf-8"))
@@ -56,3 +62,22 @@ class BoardModelTests(TestCase):
     self.assertQuerysetEqual(u3.board_set.all(), [b2], ordered=False)
     self.assertQuerysetEqual(Board.objects.filter(admin_users__id=1), [b1, b3], ordered=False)
     self.assertQuerysetEqual(Board.objects.filter(admin_users__id=3), [b2], ordered=False)
+
+  @tag('core')
+  def test_post_creation_combinations(self):
+    """Make sure that creating posts in different combinations doesn't break anything."""
+    b1 = Board(title="foo", description="bar", bg=bytearray("biv", "utf-8"))
+    b1.save()
+
+    # just make sure that none of these throw an exception when creating
+    p1 = Post(associated_board=b1, message="post1")
+    p2 = Post(associated_board=b1, name="author2", photo=bytearray("post2", "utf-8"))
+    p3 = Post(associated_board=b1, photo=bytearray("post3", "utf-8"))
+    p4 = Post(associated_board=b1, name="author4", message="post4", photo=bytearray("pic4", "utf-8"))
+    p5 = Post(associated_board=b1, message="post5", photo=bytearray("pic5", "utf-8"))
+
+    p1.save()
+    p2.save()
+    p3.save()
+    p4.save()
+    p5.save()
