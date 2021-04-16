@@ -100,7 +100,7 @@ class Board(models.Model):
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=200)
     bg = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
-    created_at = models.DateTimeField()
+    created_at = models.DateTimeField(default=datetime.now)
     admin_users = models.ManyToManyField(User)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
