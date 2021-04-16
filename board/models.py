@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 from django.contrib.auth.models import User
@@ -90,6 +91,7 @@ class Board(models.Model):
         description -> `CharField`: A charfield with max length 500 containing the title of the board.
         bg -> `OneToOneField`: A one-to-one relationship to the background image in the
             `Image` table.
+        created_at -> `DateTimeField`: A field storing the creation date of this board.
         admin_users -> `ManyToManyField`: A field storing the many admin users of this board.
         uuid -> `UUIDField`: A unique, non-editable uuid4 UUID for each board.
     """
@@ -98,6 +100,7 @@ class Board(models.Model):
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=200)
     bg = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
+    created_at = models.DateTimeField()
     admin_users = models.ManyToManyField(User)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
@@ -121,6 +124,7 @@ class Post(models.Model):
         message -> `CharField`: A charfield with max length 500 containing the specified message.
             Optional, but if not included, should contain a photo. Validation will be performed
             at the API level, as the database does not care if a post has no photo and description.
+        created_at -> `DateTimeField`: A field storing the creation date of this post.
         photo -> `OneToOneField`: A one-to-one relationship to the posted image in the `Image`
             table. Optional, but if not included, should contain a description. Validation will be
             performed at the API level, as the database does not care if a post has no photo
@@ -130,6 +134,7 @@ class Post(models.Model):
     associated_board = models.ForeignKey(Board, on_delete=models.CASCADE)
     name = models.CharField(max_length=50, blank=True)
     message = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(default=datetime.now)
     photo = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
