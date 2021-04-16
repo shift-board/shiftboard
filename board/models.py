@@ -1,8 +1,8 @@
-import datetime
 import uuid
 
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils import timezone
 
 # Create your models here.
 
@@ -100,7 +100,7 @@ class Board(models.Model):
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=200)
     bg = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     admin_users = models.ManyToManyField(User)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
@@ -134,7 +134,7 @@ class Post(models.Model):
     associated_board = models.ForeignKey(Board, on_delete=models.CASCADE)
     name = models.CharField(max_length=50, blank=True)
     message = models.CharField(max_length=500, blank=True)
-    created_at = models.DateTimeField(default=datetime.now)
+    created_at = models.DateTimeField(default=timezone.now)
     photo = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
