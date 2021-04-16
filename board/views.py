@@ -96,3 +96,18 @@ class CreatePost(View):
             return HttpResponse(status=204)
         # 422 meaning the data is valid but does not match business model
         return HttpResponse(status=422)
+
+class GetImage(View):
+    """
+    The API endpoint to retrieve images stored in the database.
+
+    Since images are stored as BLOBs, they must be fetched and returned independently from posts.
+    Once a GET request is sent to this view, it will respond with the image BLOB, using the 
+    specified static image URI as a locator. If the image URI cannot be found in the
+    database, a 404 will be returned.
+    """
+
+    def get(self, req, image):
+        """Gets the requested image from the specified image URI."""
+        #TODO: return image blob and fix docstring once finished
+        return HttpResponse(f'<h1>wow u got image {image}</h1>')

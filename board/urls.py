@@ -7,5 +7,6 @@ urlpatterns = [
   path('', views.Board.as_view(), name='main-board'),
   path('api/board/posts/get', views.GetPosts.as_view(), name='posts-get'),
   path('api/board/posts/create', views.CreatePost.as_view(), name='posts-create'),
+  path('api/board/images/<image>', views.GetImage.as_view(), name='image-get'),
   path('<board>/', views.Board.as_view(), name='board'),
 ]
