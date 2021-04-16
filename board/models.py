@@ -28,6 +28,20 @@ class Image(models.Model):
         """Returns this image's uuid, which represents this image outside of this database."""
         return f'image: {self.uuid}'
 
+    def save(self, *args, **kwargs):
+        """Saves this instance to the database and returns it.
+
+        In case inline image declaration and saving is desired, one can do it like so:
+        ```
+        i1 = Board(name="foo", description="bar", bg=Image(name="baz", photo=...).save())
+        ```
+        This way, the image created can be saved to the database without needing extra lines.
+        Normally, the save method returns `None`, but by overriding the save method, the instance
+        is returned to allow for this inliner to function.
+        """
+        super().save(*args, **kwargs)
+        return self
+
 class Board(models.Model):
     """
     A database model representing a board, where posts can be created and viewed.
@@ -83,7 +97,7 @@ class Board(models.Model):
 
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=200)
-    bg = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True)
+    bg = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
     admin_users = models.ManyToManyField(User)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
@@ -116,7 +130,7 @@ class Post(models.Model):
     associated_board = models.ForeignKey(Board, on_delete=models.CASCADE)
     name = models.CharField(max_length=50, blank=True)
     message = models.CharField(max_length=500, blank=True)
-    photo = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True)
+    photo = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         """Returns the board name, author name, and message of the post."""
