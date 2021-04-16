@@ -6,6 +6,28 @@ from django.db import models
 # Create your models here.
 
 
+class Image(models.Model):
+    """
+    A database model representing an image, containing a name and the BLOB of the actual image.
+
+    This is a separate table to make indexing the other tables more efficient, and make extraction
+    of one image simple and convenient. Each image in a Board or Post has a one-to-one relationship
+    with an image stored in this table.
+
+    Class Attributes
+        name -> `CharField`: A charfield with max length 100 with the name of the image.
+        photo -> `BinaryField`: A field with the stored image BLOB.
+        uuid -> `UUIDField`: A unique, non-editable uuid4 UUID for each image, used to locate it.
+    """
+
+    name = models.CharField(max_length=100)
+    photo = models.BinaryField()
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+
+    def __str__(self):
+        """Returns this image's uuid, which represents this image outside of this database."""
+        return f'image: {self.uuid}'
+
 class Board(models.Model):
     """
     A database model representing a board, where posts can be created and viewed.
@@ -52,7 +74,8 @@ class Board(models.Model):
     Class Attributes
         title -> `CharField`: A charfield with max length 100 containing the title of the board.
         description -> `CharField`: A charfield with max length 500 containing the title of the board.
-        bg -> `BinaryField`: A field with the background image BLOB.
+        bg -> `OneToOneField`: A one-to-one relationship to the background image in the
+            `Image` table.
         admin_users -> `ManyToManyField`: A field storing the many admin users of this board.
         uuid -> `UUIDField`: A unique, non-editable uuid4 UUID for each board.
     """
@@ -60,7 +83,7 @@ class Board(models.Model):
 
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=200)
-    bg = models.BinaryField()
+    bg = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True)
     admin_users = models.ManyToManyField(User)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
@@ -82,18 +105,20 @@ class Post(models.Model):
         associated_board -> `ForeignKey`: The foreign key for the board that this post is on.
         name -> `CharField`: A charfield with max length 50 containing the author's name. Optional.
         message -> `CharField`: A charfield with max length 500 containing the specified message.
-            Optional, but if not included, should contain a picture. Validation will be performed
-            at the API level, as the database does not care if a post has no picture and description.
-        photo -> `BinaryField`: A field containing the post's image. Optional, but if not 
-            included, should contain a description. Validation will be performed at the API level,
-            as the database does not care if a post has no picture and description.
+            Optional, but if not included, should contain a photo. Validation will be performed
+            at the API level, as the database does not care if a post has no photo and description.
+        photo -> `OneToOneField`: A one-to-one relationship to the posted image in the `Image`
+            table. Optional, but if not included, should contain a description. Validation will be
+            performed at the API level, as the database does not care if a post has no photo
+            and description.
     """
 
     associated_board = models.ForeignKey(Board, on_delete=models.CASCADE)
     name = models.CharField(max_length=50, blank=True)
     message = models.CharField(max_length=500, blank=True)
-    photo = models.BinaryField(blank=True)
+    photo = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True)
 
     def __str__(self):
         """Returns the board name, author name, and message of the post."""
         return f"{self.associated_board}: {self.name} -- {self.message}"
+
