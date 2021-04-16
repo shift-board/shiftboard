@@ -14,7 +14,7 @@ class Board(View):
     """
 
     #TODO: replace board hash with hardcoded board
-    def get(self, req, board_hash=""):
+    def get(self, req, board=""):
         """Get the index.html of the React app."""
         #TODO: write the board app frontend
         #TODO: generalize the board hash
