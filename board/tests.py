@@ -1,12 +1,10 @@
-from django.http.request import QueryDict
 from django.http.response import JsonResponse
-from board.views import GetBoardDetails
 from .models import Board, Image, Post
 import uuid
 
 from django.contrib.auth.models import User
 from django.test import TestCase, tag
-from django.http import HttpRequest
+from django.urls import reverse
 
 
 # Create your tests here.
@@ -156,31 +154,65 @@ class BoardModelTests(TestCase):
 
 class APITests(TestCase):
     @tag('core')
-    def test_get_board(self):
-        """Make sure that it returns proper JSON responses."""
+    def test_get_board_details(self):
+        """Get the board details of an existing board."""
         img = Image(name="shari", photo=bytearray("hi", "utf-8"))
         img.save()
 
         board = Board(title="hello", description="hi", bg=img)
         board.save()
 
-        exp = JsonResponse({
+        exp = {
             'title': 'hello',
             'description': 'hi',
             'bg': str(img.uuid),
-        }).content
+        }
         
-        req = HttpRequest()
-        req.method = 'GET'
-        req.GET = QueryDict(f'board={board.uuid}')
-        res = GetBoardDetails().get(req).content
-        
-        self.assertEqual(res, exp)
+        res = self.client.get(
+            reverse('board:board-details-get'), 
+            {'board': str(board.uuid)},
+            HTTP_ACCEPT='application/json',
+        )
+
+        self.assertEqual(res.json(), exp)
+    
+
+    def test_board_details_invalid_uuid(self):
+        """Returns a 404 not found if the board uuid does not exist while trying to get board details."""
+        res = self.client.get(
+            reverse('board:board-details-get'), 
+            {'board': 'not-a-uuid'},
+            HTTP_ACCEPT='application/json',
+        )
+        res2 = self.client.get(
+            reverse('board:board-details-get'), 
+            {'board': uuid.uuid4()},
+            HTTP_ACCEPT='application/json',
+        )
+        res3 = self.client.get(
+            reverse('board:board-details-get'),
+        )
+
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(res2.status_code, 404)
+        self.assertEqual(res3.status_code, 404)
+
+
+    def test_board_details_invalid_req_method(self):
+        """Returns a 200 for incorrect method when getting the board details."""
+        res = self.client.post(reverse('board:board-details-get'))
+        res2 = self.client.delete(reverse('board:board-details-get'))
+
+        self.assertEqual(res.status_code, 405)
+        self.assertEqual(res2.status_code, 405)
+
         
 
     @tag('core')
     def test_get_posts(self):
-        """Make sure that it returns proper JSON responses with proper amount."""
+        """Make sure that it returns proper JSON responses with proper amount of posts."""
+
+
 
 
     @tag('core')

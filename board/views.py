@@ -1,5 +1,7 @@
-from django.db.models.fields import UUIDField
+from uuid import UUID
+from django.core import exceptions
 from django.http import HttpResponse, JsonResponse
+from django.http.response import Http404
 from django.views import View
 from board.forms import PostForm
 
@@ -12,14 +14,14 @@ class GetMainBoard(View):
 
     This includes displaying the board, the creating post page, and the viewing post popup.
 
-    This can be found at the path '/board-name-hash'.
+    This can be found at the path '/board-name-uuid'.
     """
 
-    #TODO: replace board hash with hardcoded board
+    #TODO: replace board uuid with hardcoded board
     def get(self, req, board=""):
         """Get the index.html of the React app."""
         #TODO: write the board app frontend
-        #TODO: generalize the board hash
+        #TODO: generalize the board uuid
 
         board = '<h1>this is the board</h1>'
         return HttpResponse(board)
@@ -35,6 +37,14 @@ class GetPosts(View):
     For example, when the user first loads the page, they will see the first 50 posts.
     Then, as they scroll down to a certain point, the client (not the user, but the client script)
     requests for more post information and the server responds correspondingly.
+
+    Returns an array of posts with each post looking like:
+        name -> `string`: the author's name.
+        message -> `string`: the message written.
+        photo -> {
+            uuid -> `string`: the photo's uuid.
+            name -> `string`: the photo's name.
+        }
     """
 
     def get(self, req):
@@ -52,7 +62,7 @@ class GetPosts(View):
         Returns:
             A JSON representation of the posts.
         """
-        board_hash = req.GET.get('board')
+        board_uuid = req.GET.get('board')
         index = req.GET.get('index')
         amount = req.GET.get('amount')
 
@@ -125,14 +135,23 @@ class GetBoardDetails(View):
     JSON fields:
         title -> `string`: the title of the board. 
         description -> `string`: the description for the board.
-        bg -> `string`: the hash/uuid of the background image of the board. 
+        bg -> `string`: the uuid of the background image of the board. 
 
     """
 
     def get(self, req):
         """Get the board details as a JSON response."""
-        board_hash = req.GET.get('board')
-        board = Board.objects.get(uuid=board_hash)
+        
+        try:
+            # Ensure the query string exists.
+            board_uuid = req.GET.get('board')
+            # Ensure it is a valid uuid.
+            UUID(board_uuid, version=4)
+            # Ensure the board exists.
+            board = Board.objects.get(uuid=board_uuid)
+        except:
+            raise Http404('Board not found')
+
         board_json = {
             'title': board.title,
             'description': board.description,
