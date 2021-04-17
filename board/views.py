@@ -1,10 +1,12 @@
+from uuid import UUID
+from board.models import Board, Post
 from django.http import HttpResponse, JsonResponse
 from django.views import View
 from board.forms import PostForm
 
 # Create your views here.
 
-class Board(View):
+class GetMainBoard(View):
     """
     The landing page serving the React single page board app.
 
@@ -35,6 +37,30 @@ class GetPosts(View):
     requests for more post information and the server responds correspondingly.
     """
 
+    def get_post_dict(post):
+        """
+        Return a formated dictionary of a post.
+
+        Args:
+            post -> `Post`: the post.
+        
+        JSON fields:
+            name -> `string`: the author's name.
+            message -> `string`: the message written.
+            photo -> {
+                uuid -> `string`: the photo's uuid.
+                name -> `string`: the photo's name.
+            }
+        """
+        return {
+            'name': post.name,
+            'message': post.message,
+            'photo': {
+                'uuid': str(post.photo.uuid),
+                'name': post.photo.name,
+            }
+        }
+
     def get(self, req):
         """
         Get the data from the database and send a JSON response.
@@ -50,13 +76,30 @@ class GetPosts(View):
         Returns:
             A JSON representation of the posts.
         """
-        board_hash = self.request.GET.get('board')
-        index = self.request.GET.get('index')
-        amount = self.request.GET.get('amount')
+        try:
+            # Ensure all these parameters exist.
+            board_uuid = req.GET.get('board')
+            index = req.GET.get('index')
+            amount = req.GET.get('amount')
 
-        #TODO: get data from DB
-        posts = {}
-        return JsonResponse(posts)
+            # Validating each param.
+            board_uuid = UUID(board_uuid, version=4)
+            Board.objects.get(uuid=board_uuid)
+            index = int(index)
+            amount = int(amount)
+        except:
+            return HttpResponse(status=404)
+
+        if (index < 0 or amount < 0):
+            return HttpResponse(status=404)   
+
+        
+        posts_query_set = Post.objects \
+            .filter(associated_board__uuid__exact=board_uuid) \
+            .order_by('-created_at')[index:index+amount]
+
+        posts = [GetPosts.get_post_dict(post) for post in posts_query_set]
+        return JsonResponse(posts, safe=False)
 
 
 class CreatePost(View):

@@ -1,8 +1,10 @@
+from board.views import GetPosts
 import uuid
 
 from django.contrib.auth.models import User
 from django.test import TestCase, tag
-from django.http import reverse
+from django.urls import reverse
+from django.utils import timezone
 
 from .models import Board, Image, Post
 
@@ -157,27 +159,22 @@ class APITests(TestCase):
         """Return a list of posts that are added to a board."""
         posts = []
         for i in range(amount):
-            p = Post(associated_board=board, message='hi', name=str(i), photo=Image(name=f'photo{i}').save())
+            p = Post(
+                associated_board=board, 
+                message='hi', 
+                name=str(i), 
+                photo=Image(name=f'photo{i}', photo=bytearray('hi', 'utf-8')).save(),
+                created_at=timezone.now()+timezone.timedelta(seconds=i)
+            )
             p.save()
             posts.append(p)
         return posts
-    
-    def get_post_dict(self, post):
-        """Return a formated dictionary of a post."""
-        return {
-            'name': post.name,
-            'message': post.message,
-            'photo': {
-                'uuid': str(post.photo.uuid),
-                'name': post.photo.name,
-            }
-        }
 
     @tag('core')
     def test_get_posts(self):
         """Make sure that it returns proper JSON responses with proper amount of posts."""
         
-        b = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi')).save())
+        b = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi', 'utf-8')).save())
         b.save()
         posts = self.add_posts(b, 30)
         
@@ -194,7 +191,7 @@ class APITests(TestCase):
         exp1 = []
         for i in range(10):
             p = posts[-i-1]
-            exp1.append(self.get_post_dict(p))
+            exp1.append(GetPosts.get_post_dict(p))
         self.assertEqual(res1.json(), exp1)
 
 
@@ -211,7 +208,7 @@ class APITests(TestCase):
         exp2 = []
         for i in range(10):
             p = posts[-i-11]
-            exp2.append(self.get_post_dict(p))
+            exp2.append(GetPosts.get_post_dict(p))
         
         self.assertEqual(res2.json(), exp2)
 
@@ -222,9 +219,11 @@ class APITests(TestCase):
         have available. It should return back just the sufficient amount.
         """
 
-        b1 = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi')).save())
-        b2 = Board(title='hi2', description='hello2', bg=Image(name='i2', photo=bytearray('hi')).save())
+        b1 = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi', 'utf-8')).save())
+        b2 = Board(title='hi2', description='hello2', bg=Image(name='i2', photo=bytearray('hi', 'utf-8')).save())
 
+        b1.save()
+        b2.save()
         posts1 = self.add_posts(b1, 5)
 
         # board 1 has only 5 posts but the client requested 10
@@ -239,7 +238,7 @@ class APITests(TestCase):
         )
         exp1 = []
         for i in range(5):
-            exp1.append(self.get_post_dict(posts1[-i-1]))
+            exp1.append(GetPosts.get_post_dict(posts1[-i-1]))
         self.assertEqual(res1.json(), exp1)
 
         # board 2 has no posts but the client requested 10
@@ -264,7 +263,8 @@ class APITests(TestCase):
         - etc
         """
 
-        b1 = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi')).save())
+        b1 = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi', 'utf-8')).save())
+        b1.save()
 
         # Non-existent board uuid
         res1 = self.client.get(
@@ -305,11 +305,21 @@ class APITests(TestCase):
             },
             HTTP_ACCEPT='application/json',
         )
+        res5 = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(b1.uuid),
+                'index': '-12',
+                'amount': '10',
+            },
+            HTTP_ACCEPT='application/json',
+        )
 
         self.assertEqual(res1.status_code, 404)
         self.assertEqual(res2.status_code, 404)
         self.assertEqual(res3.status_code, 404)
         self.assertEqual(res4.status_code, 404)
+        self.assertEqual(res5.status_code, 404)
 
 
 
