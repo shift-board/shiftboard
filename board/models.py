@@ -2,9 +2,48 @@ import uuid
 
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils import timezone
 
 # Create your models here.
 
+
+class Image(models.Model):
+    """
+    A database model representing an image, containing a name and the BLOB of the actual image.
+
+    This is a separate table to make indexing the other tables more efficient, and make extraction
+    of one image simple and convenient. Each image in a Board or Post has a one-to-one relationship
+    with an image stored in this table.
+
+    Class Attributes
+        name -> `CharField`: A charfield with max length 100 with the name of the image.
+        photo -> `BinaryField`: A field with the stored image BLOB.
+        created_at -> `DateTimeField`: A field storing the creation date of this image.
+        uuid -> `UUIDField`: A unique, non-editable uuid4 UUID for each image, used to locate it.
+    """
+
+    name = models.CharField(max_length=100)
+    photo = models.BinaryField()
+    created_at = models.DateTimeField(default=timezone.now)
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+
+    def __str__(self):
+        """Returns this image's uuid, which represents this image outside of this database."""
+        return f'image: {self.uuid}'
+
+    def save(self, *args, **kwargs):
+        """Saves this instance to the database and returns it.
+
+        In case inline image declaration and saving is desired, one can do it like so:
+        ```
+        i1 = Board(name="foo", description="bar", bg=Image(name="baz", photo=...).save())
+        ```
+        This way, the image created can be saved to the database without needing extra lines.
+        Normally, the save method returns `None`, but by overriding the save method, the instance
+        is returned to allow for this inliner to function.
+        """
+        super().save(*args, **kwargs)
+        return self
 
 class Board(models.Model):
     """
@@ -52,7 +91,9 @@ class Board(models.Model):
     Class Attributes
         title -> `CharField`: A charfield with max length 100 containing the title of the board.
         description -> `CharField`: A charfield with max length 500 containing the title of the board.
-        bg -> `BinaryField`: A field with the background image BLOB.
+        bg -> `OneToOneField`: A one-to-one relationship to the background image in the
+            `Image` table.
+        created_at -> `DateTimeField`: A field storing the creation date of this board.
         admin_users -> `ManyToManyField`: A field storing the many admin users of this board.
         uuid -> `UUIDField`: A unique, non-editable uuid4 UUID for each board.
     """
@@ -60,7 +101,8 @@ class Board(models.Model):
 
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=200)
-    bg = models.BinaryField()
+    bg = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
+    created_at = models.DateTimeField(default=timezone.now)
     admin_users = models.ManyToManyField(User)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
@@ -82,18 +124,22 @@ class Post(models.Model):
         associated_board -> `ForeignKey`: The foreign key for the board that this post is on.
         name -> `CharField`: A charfield with max length 50 containing the author's name. Optional.
         message -> `CharField`: A charfield with max length 500 containing the specified message.
-            Optional, but if not included, should contain a picture. Validation will be performed
-            at the API level, as the database does not care if a post has no picture and description.
-        photo -> `BinaryField`: A field containing the post's image. Optional, but if not 
-            included, should contain a description. Validation will be performed at the API level,
-            as the database does not care if a post has no picture and description.
+            Optional, but if not included, should contain a photo. Validation will be performed
+            at the API level, as the database does not care if a post has no photo and description.
+        created_at -> `DateTimeField`: A field storing the creation date of this post.
+        photo -> `OneToOneField`: A one-to-one relationship to the posted image in the `Image`
+            table. Optional, but if not included, should contain a description. Validation will be
+            performed at the API level, as the database does not care if a post has no photo
+            and description.
     """
 
     associated_board = models.ForeignKey(Board, on_delete=models.CASCADE)
     name = models.CharField(max_length=50, blank=True)
     message = models.CharField(max_length=500, blank=True)
-    photo = models.BinaryField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    photo = models.OneToOneField(Image, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         """Returns the board name, author name, and message of the post."""
         return f"{self.associated_board}: {self.name} -- {self.message}"
+
