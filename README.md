@@ -26,12 +26,13 @@ Shiftboard is currently in development! Here is a quick roadmap of what we have 
 - [ ] Posts and boards are saved
 - [ ] Easy and convenient add post section
 - [ ] Admin users can delete posts
+- [ ] Hosted on [Heroku](https://www.heroku.com/)
 - [x] For Zhang Xian Kai
 
 ### Shiftboard v1.0
 - [ ] Able to create boards and generate a board URL to visit each board
 - [ ] User account creation to create boards and determine admins
-- [ ] Hosted on [Heroku](https://www.heroku.com/)
+
 
 ## Support
 Found an issue? Report it on the issues tab!
