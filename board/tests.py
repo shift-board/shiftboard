@@ -1,9 +1,13 @@
+from django.http.request import QueryDict
+from django.http.response import JsonResponse
+from board.views import GetBoardDetails
+from .models import Board, Image, Post
 import uuid
 
 from django.contrib.auth.models import User
 from django.test import TestCase, tag
+from django.http import HttpRequest
 
-from .models import Board, Image, Post
 
 # Create your tests here.
 
@@ -147,3 +151,42 @@ class BoardModelTests(TestCase):
     p3.save()
     p4.save()
     p5.save()
+
+
+
+class APITests(TestCase):
+    @tag('core')
+    def test_get_board(self):
+        """Make sure that it returns proper JSON responses."""
+        img = Image(name="shari", photo=bytearray("hi", "utf-8"))
+        img.save()
+
+        board = Board(title="hello", description="hi", bg=img)
+        board.save()
+
+        exp = JsonResponse({
+            'title': 'hello',
+            'description': 'hi',
+            'bg': str(img.uuid),
+        }).content
+        
+        req = HttpRequest()
+        req.method = 'GET'
+        req.GET = QueryDict(f'board={board.uuid}')
+        res = GetBoardDetails().get(req).content
+        
+        self.assertEqual(res, exp)
+        
+
+    @tag('core')
+    def test_get_posts(self):
+        """Make sure that it returns proper JSON responses with proper amount."""
+
+
+    @tag('core')
+    def test_create_posts(self):
+        """Make sure the data is properly saved to the database and rejects any incorrect data."""
+
+    @tag('core')
+    def test_get_image(self):
+        """Gets the blob of the image that is able to be displayed."""

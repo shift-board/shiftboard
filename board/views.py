@@ -1,10 +1,12 @@
+from django.db.models.fields import UUIDField
 from django.http import HttpResponse, JsonResponse
 from django.views import View
 from board.forms import PostForm
 
+from .models import Post, Board, Image
 # Create your views here.
 
-class Board(View):
+class GetMainBoard(View):
     """
     The landing page serving the React single page board app.
 
@@ -50,9 +52,9 @@ class GetPosts(View):
         Returns:
             A JSON representation of the posts.
         """
-        board_hash = self.request.GET.get('board')
-        index = self.request.GET.get('index')
-        amount = self.request.GET.get('amount')
+        board_hash = req.GET.get('board')
+        index = req.GET.get('index')
+        amount = req.GET.get('amount')
 
         #TODO: get data from DB
         posts = {}
@@ -87,7 +89,7 @@ class CreatePost(View):
         Returns:
             A response of either status `204` for success or `422` for invalid data.
         """
-        form = PostForm(self.request.POST, self.request.FILES)
+        form = PostForm(req.POST, req.FILES)
 
         if (form.is_valid()):
             #TODO: save form data to database
@@ -111,3 +113,30 @@ class GetImage(View):
         """Gets the requested image from the specified image URI."""
         #TODO: return image blob and fix docstring once finished
         return HttpResponse(f'<h1>wow u got image {image}</h1>')
+
+
+class GetBoardDetails(View):
+    """
+    The API endpoint to retrieve details regarding the board page.
+
+    The details DO NOT include the posts, as they are done through a separate API.
+    This returns a JSON object in the form of:
+
+    JSON fields:
+        title -> `string`: the title of the board. 
+        description -> `string`: the description for the board.
+        bg -> `string`: the hash/uuid of the background image of the board. 
+
+    """
+
+    def get(self, req):
+        """Get the board details as a JSON response."""
+        board_hash = req.GET.get('board')
+        board = Board.objects.get(uuid=board_hash)
+        board_json = {
+            'title': board.title,
+            'description': board.description,
+            'bg': str(board.bg.uuid),
+        }
+
+        return JsonResponse(board_json)
