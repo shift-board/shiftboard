@@ -13,9 +13,12 @@ class Board(View):
     This can be found at the path '/board-name-hash'.
     """
 
-    def get(self):
+    #TODO: replace board hash with hardcoded board
+    def get(self, req, board=""):
         """Get the index.html of the React app."""
         #TODO: write the board app frontend
+        #TODO: generalize the board hash
+
         board = '<h1>this is the board</h1>'
         return HttpResponse(board)
 
@@ -32,7 +35,7 @@ class GetPosts(View):
     requests for more post information and the server responds correspondingly.
     """
 
-    def get(self):
+    def get(self, req):
         """
         Get the data from the database and send a JSON response.
 
@@ -47,8 +50,10 @@ class GetPosts(View):
         Returns:
             A JSON representation of the posts.
         """
+        board_hash = self.request.GET.get('board')
         index = self.request.GET.get('index')
         amount = self.request.GET.get('amount')
+
         #TODO: get data from DB
         posts = {}
         return JsonResponse(posts)
@@ -67,7 +72,7 @@ class CreatePost(View):
     of course, an empty post.
     """
 
-    def post(self):
+    def post(self, req):
         """
         Adds the post to the database and return a response correspondingly.
 
@@ -83,6 +88,7 @@ class CreatePost(View):
             A response of either status `204` for success or `422` for invalid data.
         """
         form = PostForm(self.request.POST, self.request.FILES)
+
         if (form.is_valid()):
             #TODO: save form data to database
 
@@ -90,3 +96,18 @@ class CreatePost(View):
             return HttpResponse(status=204)
         # 422 meaning the data is valid but does not match business model
         return HttpResponse(status=422)
+
+class GetImage(View):
+    """
+    The API endpoint to retrieve images stored in the database.
+
+    Since images are stored as BLOBs, they must be fetched and returned independently from posts.
+    Once a GET request is sent to this view, it will respond with the image BLOB, using the 
+    specified static image URI as a locator. If the image URI cannot be found in the
+    database, a 404 will be returned.
+    """
+
+    def get(self, req, image):
+        """Gets the requested image from the specified image URI."""
+        #TODO: return image blob and fix docstring once finished
+        return HttpResponse(f'<h1>wow u got image {image}</h1>')
