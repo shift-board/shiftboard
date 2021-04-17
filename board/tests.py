@@ -1,10 +1,11 @@
-from django.http.response import JsonResponse
-from .models import Board, Image, Post
 import uuid
 
 from django.contrib.auth.models import User
 from django.test import TestCase, tag
 from django.urls import reverse
+
+from .models import Board, Image, Post
+
 
 
 # Create your tests here.
@@ -199,7 +200,7 @@ class APITests(TestCase):
 
 
     def test_board_details_invalid_req_method(self):
-        """Returns a 200 for incorrect method when getting the board details."""
+        """Returns a 405 for incorrect request method (post, delete, etc) when getting the board details."""
         res = self.client.post(reverse('board:board-details-get'))
         res2 = self.client.delete(reverse('board:board-details-get'))
 

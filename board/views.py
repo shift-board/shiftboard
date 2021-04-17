@@ -1,12 +1,11 @@
 from uuid import UUID
-from django.core import exceptions
+
 from django.http import HttpResponse, JsonResponse
 from django.http.response import Http404
 from django.views import View
-from board.forms import PostForm
 
-from .models import Post, Board, Image
-# Create your views here.
+from board.forms import PostForm
+from board.models import Post, Board, Image
 
 class GetMainBoard(View):
     """
