@@ -18,11 +18,13 @@ class Image(models.Model):
     Class Attributes
         name -> `CharField`: A charfield with max length 100 with the name of the image.
         photo -> `BinaryField`: A field with the stored image BLOB.
+        created_at -> `DateTimeField`: A field storing the creation date of this image.
         uuid -> `UUIDField`: A unique, non-editable uuid4 UUID for each image, used to locate it.
     """
 
     name = models.CharField(max_length=100)
     photo = models.BinaryField()
+    created_at = models.DateTimeField(default=timezone.now)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     def __str__(self):
