@@ -13,12 +13,10 @@ class PostForm(forms.Form):
         message -> string: the message being written in the post
         photo -> ImageFiles: the photo(s) attached to the post    
     """
+    board = forms.UUIDField()
     name = forms.CharField(max_length=50, required=False)
     message = forms.CharField(max_length=500, required=False)
-    photo = forms.ImageField(
-        widget=forms.ClearableFileInput(attrs={'multiple': True}), 
-        required=False
-    )
+    photo = forms.ImageField(required=False)
 
     def clean(self):
         """
@@ -32,7 +30,7 @@ class PostForm(forms.Form):
         The data is invalid if both `photo` field and `message` field do not exist.
         """
         cleaned_data = super().clean()
-        if (cleaned_data.get('message') is None and self.cleaned_data('photo') is None):
+        if (cleaned_data.get('message') is '' and self.files.get('photo') is None):
             error = 'At least one photo or message must exist.'
             self.add_error('message', error)
             self.add_error('photo', error)
