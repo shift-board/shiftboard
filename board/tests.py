@@ -1,3 +1,5 @@
+import time
+from io import BytesIO
 import uuid
 
 from django.contrib.auth.models import User
@@ -218,7 +220,187 @@ class APITests(TestCase):
 
     @tag('core')
     def test_create_posts(self):
-        """Make sure the data is properly saved to the database and rejects any incorrect data."""
+        """Creating a post given all fields."""
+        b = Board(name='hi', description='hello')
+        b.save()
+
+        img = BytesIO(b'data')
+        img.name = 'blobsmile.png'
+
+        res = self.client.post(
+            reverse('board:post-create')+f'/?board={b.uuid}',
+            {
+                'name': 'bob',
+                'message': 'hello world',
+                'photo': img
+            },
+            HTTP_ACCEPT='application/json',
+        )
+
+        p = b.post_set.all()[0]
+        # Ensuring it is properly saved in the database.
+        self.assertEqual(p.name, 'bob')
+        self.assertEqual(p.message, 'hello world')
+        self.assertEqual(p.photo.name, 'blobsmile.png')
+        self.assertEqual(p.photo.photo, b'data')
+
+        exp = {
+            'name': 'bob',
+            'message': 'hello world',
+            'photo': {
+                'uuid': str(p.photo.uuid),
+                'name': 'blobsmile.png',
+            }
+        }
+        self.assertEqual(res.json(), exp)
+
+
+    @tag('core')
+    def test_create_posts_optional_fields(self):
+        """Creating a post with only certain optional fields given."""
+
+        b = Board(name='hi', description='hello')
+        b.save()
+
+        # Name + message field.
+        res1 = self.client.post(
+            reverse('board:post-create')+f'/?board={b.uuid}',
+            {'name': 'bob', 'message': 'hello world'},
+            HTTP_ACCEPT='application/json',
+        )
+        exp1 = {
+            'name': 'bob', 
+            'message': 'hello world',
+            'photo': None,
+        }
+        
+        # Message field only.
+        time.sleep(0.01) # Ensuring that there is a proper delay for the requests.
+        res2 = self.client.post(
+            reverse('board:post-create')+f'/?board={b.uuid}',
+            {'message': 'hello world2'},
+            HTTP_ACCEPT='application/json',
+        )
+        exp2 = {
+            'name': None, 
+            'message': 'hello world2',
+            'photo': None,
+        }
+        # Photo field only.
+        time.sleep(0.01) # Ensuring that there is a proper delay for the requests.
+        img = BytesIO(b'data')
+        img.name = 'blobsmile.png'
+        res3 = self.client.post(
+            reverse('board:post-create')+f'/?board={b.uuid}',
+            {'photo': img},
+            HTTP_ACCEPT='application/json',
+        )
+        exp3 = {
+            'name': None, 
+            'message': None,
+            'photo': {
+                'uuid': str(img.uuid),
+                'name': 'blobsmile.png',
+            },
+        }
+
+        self.assertEqual(res1.json(), exp1)
+        self.assertEqual(res2.json(), exp2)
+        self.assertEqual(res3.json(), exp3)    
+
+        # Ensure that they're saved to the database properly.
+        posts = b.post_set.all().ordered_by('created_at')
+        p1, p2, p3 = posts
+
+        self.assertEqual(p1.name, 'bob')
+        self.assertEqual(p1.message, 'hello world')
+        self.assertIs(p1.photo, None)
+
+        self.assertIs(p2.name, None)
+        self.assertEqual(p2.message, 'hello world2')
+        self.assertIs(p2.photo, None)
+
+        self.assertIs(p3.name, None)
+        self.assertIs(p3.message, None)
+        self.assertEqual(p3.photo.name, 'blobsmile.png')
+        self.assertEqual(p3.photo.photo, b'data')
+
+
+    def test_create_posts_missing_fields(self):
+        """Posts should not be created if there are missing fields."""
+
+        b = Board(name='hi', description='hello')
+        b.save()
+
+        # Name field.
+        res1 = self.client.post(
+            reverse('board:post-create')+f'/?board={b.uuid}',
+            {'name': 'bob'},
+            HTTP_ACCEPT='application/json',
+        )
+        
+        # None.
+        time.sleep(0.01) # Ensuring that there is a proper delay for the requests.
+        res2 = self.client.post(
+            reverse('board:post-create')+f'/?board={b.uuid}',
+            {},
+            HTTP_ACCEPT='application/json',
+        )
+
+        self.assertEqual(res1.status_code, 422)
+        self.assertEqual(res2.status_code, 422)
+        self.assertQuerysetEqual(b.post_set.all(), [])
+
+
+    def test_create_posts_invalid_form_data(self):
+        """Invalid form data is received."""
+
+        b = Board(name='hi', description='hello')
+        b.save()
+
+        # Photo is a string.
+        res1 = self.client.post(
+            reverse('board:post-create')+f'/?board={b.uuid}',
+            {'photo': 'this is a photo'},
+            HTTP_ACCEPT='application/json',
+        )
+        
+        # Photo is a file (missing a name).
+        img = BytesIO(b'data')
+        time.sleep(0.01) # Ensuring that there is a proper delay for the requests.
+        res2 = self.client.post(
+            reverse('board:post-create')+f'/?board={b.uuid}',
+            {'photo': img},
+            HTTP_ACCEPT='application/json',
+        )
+
+        self.assertEqual(res1.status_code, 422)
+        self.assertEqual(res2.status_code, 422)
+        self.assertQuerysetEqual(b.post_set.all(), [])
+
+    def test_create_posts_invalid_board(self):
+        """Returns a 404 not found if the board uuid does not exist while trying to create a post."""
+        res = self.client.post(
+            reverse('board:post-create')+'/?board=invaliduuid', 
+            {'message': 'hi'},
+            HTTP_ACCEPT='application/json',
+        )
+        id = uuid.uuid4()
+        res2 = self.client.post(
+            reverse('board:post-create')+f'/?board={id}', 
+            {'message': 'hi'},
+            HTTP_ACCEPT='application/json',
+        )
+        res3 = self.client.post(
+            reverse('board:post-create'),
+            {'message': 'hi'},
+        )
+
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(res2.status_code, 404)
+        self.assertEqual(res3.status_code, 404)
+
+
 
     @tag('core')
     def test_get_image(self):
