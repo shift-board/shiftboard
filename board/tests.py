@@ -1,4 +1,4 @@
-from board.views import GetPosts
+from board.views import get_post_dict
 import uuid
 
 from django.contrib.auth.models import User
@@ -191,7 +191,7 @@ class APITests(TestCase):
         exp1 = []
         for i in range(10):
             p = posts[-i-1]
-            exp1.append(GetPosts.get_post_dict(p))
+            exp1.append(get_post_dict(p))
         self.assertEqual(res1.json(), exp1)
 
 
@@ -208,7 +208,7 @@ class APITests(TestCase):
         exp2 = []
         for i in range(10):
             p = posts[-i-11]
-            exp2.append(GetPosts.get_post_dict(p))
+            exp2.append(get_post_dict(p))
         
         self.assertEqual(res2.json(), exp2)
     
@@ -235,7 +235,7 @@ class APITests(TestCase):
         ]
         exp = []
         for p in posts:
-            exp.append(GetPosts.get_post_dict(p))
+            exp.append(get_post_dict(p))
             p.save()
         
         res = self.client.get(
@@ -276,7 +276,7 @@ class APITests(TestCase):
         )
         exp1 = []
         for i in range(5):
-            exp1.append(GetPosts.get_post_dict(posts1[-i-1]))
+            exp1.append(get_post_dict(posts1[-i-1]))
         self.assertEqual(res1.json(), exp1)
 
         # board 2 has no posts but the client requested 10

@@ -24,6 +24,34 @@ class GetMainBoard(View):
         board = '<h1>this is the board</h1>'
         return HttpResponse(board)
 
+def get_post_dict(post):
+    """
+    Return a formated dictionary of a post.
+
+    Args:
+        post -> `Post`: the post.
+    
+    JSON fields:
+        name -> `string`: the author's name.
+        message -> `string`: the message written.
+        photo -> {
+            uuid -> `string`: the photo's uuid.
+            name -> `string`: the photo's name.
+        }
+    """
+    if (post.photo is not None):
+        photo = {
+            'uuid': str(post.photo.uuid),
+            'name': post.photo.name,
+        }
+    else:
+        photo = None
+
+    return {
+        'name': post.name,
+        'message': post.message,
+        'photo': photo,
+    }
 
 class GetPosts(View):
     """
@@ -36,35 +64,6 @@ class GetPosts(View):
     Then, as they scroll down to a certain point, the client (not the user, but the client script)
     requests for more post information and the server responds correspondingly.
     """
-
-    def get_post_dict(post):
-        """
-        Return a formated dictionary of a post.
-
-        Args:
-            post -> `Post`: the post.
-        
-        JSON fields:
-            name -> `string`: the author's name.
-            message -> `string`: the message written.
-            photo -> {
-                uuid -> `string`: the photo's uuid.
-                name -> `string`: the photo's name.
-            }
-        """
-        if (post.photo is not None):
-            photo = {
-                'uuid': str(post.photo.uuid),
-                'name': post.photo.name,
-            }
-        else:
-            photo = None
-
-        return {
-            'name': post.name,
-            'message': post.message,
-            'photo': photo,
-        }
 
     def get(self, req):
         """
@@ -103,7 +102,7 @@ class GetPosts(View):
             .filter(associated_board__uuid__exact=board_uuid) \
             .order_by('-created_at')[index:index+amount]
 
-        posts = [GetPosts.get_post_dict(post) for post in posts_query_set]
+        posts = [get_post_dict(post) for post in posts_query_set]
         return JsonResponse(posts, safe=False)
 
 
