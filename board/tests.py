@@ -211,6 +211,44 @@ class APITests(TestCase):
             exp2.append(GetPosts.get_post_dict(p))
         
         self.assertEqual(res2.json(), exp2)
+    
+    @tag('core')
+    def test_get_posts_optional_fields(self):
+        """Get posts that does have every field"""
+        b = Board(title='hi', description='hello')
+        b.save()
+
+        posts = [
+            Post(associated_board=b, message='hi', created_at=timezone.now()),
+            Post(
+                associated_board=b, 
+                name='shari', 
+                message='cool', 
+                created_at=timezone.now()-timezone.timedelta(1)
+            ),
+            Post(
+                associated_board=b, 
+                name='joseph', 
+                photo=Image(name='i', photo=bytearray('b', 'utf-8')).save(),
+                created_at=timezone.now()-timezone.timedelta(2),
+            ),
+        ]
+        exp = []
+        for p in posts:
+            exp.append(GetPosts.get_post_dict(p))
+            p.save()
+        
+        res = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(b.uuid),
+                'index': '0',
+                'amount': '10',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+        self.assertEqual(res.json(), exp)
+
 
     @tag('core')
     def test_get_posts_fully_loaded(self):

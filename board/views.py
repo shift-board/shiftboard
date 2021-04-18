@@ -52,13 +52,18 @@ class GetPosts(View):
                 name -> `string`: the photo's name.
             }
         """
-        return {
-            'name': post.name,
-            'message': post.message,
-            'photo': {
+        if (post.photo is not None):
+            photo = {
                 'uuid': str(post.photo.uuid),
                 'name': post.photo.name,
             }
+        else:
+            photo = None
+
+        return {
+            'name': post.name,
+            'message': post.message,
+            'photo': photo,
         }
 
     def get(self, req):
