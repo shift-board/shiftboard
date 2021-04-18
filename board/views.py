@@ -149,7 +149,7 @@ class GetBoardDetails(View):
             # Ensure the board exists.
             board = Board.objects.get(uuid=board_uuid)
         except:
-            raise Http404('Board not found')
+            return HttpResponse(status=404)
 
         board_json = {
             'title': board.title,
