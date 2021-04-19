@@ -154,8 +154,8 @@ class BoardModelTests(TestCase):
         p5.save()
 
 
-class APITests(TestCase):
-    """Tests with API endpoints."""
+class GetPostsTests(TestCase):
+    """Tests the `posts-get` API endpoint."""
 
     def add_posts(self, board, amount):
         """Return a list of posts that are added to a board."""
@@ -362,10 +362,9 @@ class APITests(TestCase):
         self.assertEqual(res5.status_code, 400)
 
 
+class GetBoardDetailsTest(TestCase):
+    """Tests the `board-details-get` API endpoint."""
 
-
-
-class APITests(TestCase):
     @tag('core')
     def test_get_board_details(self):
         """Get the board details of an existing board."""
@@ -419,19 +418,3 @@ class APITests(TestCase):
         self.assertEqual(res.status_code, 405)
         self.assertEqual(res2.status_code, 405)
 
-        
-
-    @tag('core')
-    def test_get_posts(self):
-        """Make sure that it returns proper JSON responses with proper amount of posts."""
-
-
-
-
-    @tag('core')
-    def test_create_posts(self):
-        """Make sure the data is properly saved to the database and rejects any incorrect data."""
-
-    @tag('core')
-    def test_get_image(self):
-        """Gets the blob of the image that is able to be displayed."""
