@@ -8,6 +8,8 @@ from django.utils import timezone
 from board.models import Board, Image, Post
 from board.views import get_post_dict
 
+
+
 # Create your tests here.
 
 class BoardModelTests(TestCase):
@@ -362,3 +364,74 @@ class APITests(TestCase):
 
 
 
+
+class APITests(TestCase):
+    @tag('core')
+    def test_get_board_details(self):
+        """Get the board details of an existing board."""
+        img = Image(name="shari", photo=bytearray("hi", "utf-8"))
+        img.save()
+
+        board = Board(title="hello", description="hi", bg=img)
+        board.save()
+
+        exp = {
+            'title': 'hello',
+            'description': 'hi',
+            'bg': str(img.uuid),
+        }
+        
+        res = self.client.get(
+            reverse('board:board-details-get'), 
+            {'board': str(board.uuid)},
+            HTTP_ACCEPT='application/json',
+        )
+
+        self.assertEqual(res.json(), exp)
+    
+
+    def test_board_details_invalid_uuid(self):
+        """Returns a 404 not found if the board uuid does not exist while trying to get board details."""
+        res = self.client.get(
+            reverse('board:board-details-get'), 
+            {'board': 'not-a-uuid'},
+            HTTP_ACCEPT='application/json',
+        )
+        res2 = self.client.get(
+            reverse('board:board-details-get'), 
+            {'board': uuid.uuid4()},
+            HTTP_ACCEPT='application/json',
+        )
+        res3 = self.client.get(
+            reverse('board:board-details-get'),
+        )
+
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(res2.status_code, 404)
+        self.assertEqual(res3.status_code, 404)
+
+
+    def test_board_details_invalid_req_method(self):
+        """Returns a 405 for incorrect request method (post, delete, etc) when getting the board details."""
+        res = self.client.post(reverse('board:board-details-get'))
+        res2 = self.client.delete(reverse('board:board-details-get'))
+
+        self.assertEqual(res.status_code, 405)
+        self.assertEqual(res2.status_code, 405)
+
+        
+
+    @tag('core')
+    def test_get_posts(self):
+        """Make sure that it returns proper JSON responses with proper amount of posts."""
+
+
+
+
+    @tag('core')
+    def test_create_posts(self):
+        """Make sure the data is properly saved to the database and rejects any incorrect data."""
+
+    @tag('core')
+    def test_get_image(self):
+        """Gets the blob of the image that is able to be displayed."""

@@ -1,10 +1,10 @@
 from uuid import UUID
-from board.models import Board, Post
 from django.http import HttpResponse, JsonResponse
+from django.http.response import Http404
 from django.views import View
-from board.forms import PostForm
 
-# Create your views here.
+from board.forms import PostForm
+from board.models import Post, Board, Image
 
 class GetMainBoard(View):
     """
@@ -12,14 +12,14 @@ class GetMainBoard(View):
 
     This includes displaying the board, the creating post page, and the viewing post popup.
 
-    This can be found at the path '/board-name-hash'.
+    This can be found at the path '/board-name-uuid'.
     """
 
-    #TODO: replace board hash with hardcoded board
+    #TODO: replace board uuid with hardcoded board
     def get(self, req, board=""):
         """Get the index.html of the React app."""
         #TODO: write the board app frontend
-        #TODO: generalize the board hash
+        #TODO: generalize the board uuid
 
         board = '<h1>this is the board</h1>'
         return HttpResponse(board)
@@ -63,6 +63,14 @@ class GetPosts(View):
     For example, when the user first loads the page, they will see the first 50 posts.
     Then, as they scroll down to a certain point, the client (not the user, but the client script)
     requests for more post information and the server responds correspondingly.
+
+    Returns an array of posts with each post looking like:
+        name -> `string`: the author's name.
+        message -> `string`: the message written.
+        photo -> {
+            uuid -> `string`: the photo's uuid.
+            name -> `string`: the photo's name.
+        }
     """
 
     def get(self, req):
@@ -138,7 +146,7 @@ class CreatePost(View):
         Returns:
             A response of either status `204` for success or `422` for invalid data.
         """
-        form = PostForm(self.request.POST, self.request.FILES)
+        form = PostForm(req.POST, req.FILES)
 
         if (form.is_valid()):
             #TODO: save form data to database
@@ -162,3 +170,39 @@ class GetImage(View):
         """Gets the requested image from the specified image URI."""
         #TODO: return image blob and fix docstring once finished
         return HttpResponse(f'<h1>wow u got image {image}</h1>')
+
+
+class GetBoardDetails(View):
+    """
+    The API endpoint to retrieve details regarding the board page.
+
+    The details DO NOT include the posts, as they are done through a separate API.
+    This returns a JSON object in the form of:
+
+    JSON fields:
+        title -> `string`: the title of the board. 
+        description -> `string`: the description for the board.
+        bg -> `string`: the uuid of the background image of the board. 
+
+    """
+
+    def get(self, req):
+        """Get the board details as a JSON response."""
+        
+        try:
+            # Ensure the query string exists.
+            board_uuid = req.GET.get('board')
+            # Ensure it is a valid uuid.
+            UUID(board_uuid, version=4)
+            # Ensure the board exists.
+            board = Board.objects.get(uuid=board_uuid)
+        except:
+            return HttpResponse(status=404)
+
+        board_json = {
+            'title': board.title,
+            'description': board.description,
+            'bg': str(board.bg.uuid),
+        }
+
+        return JsonResponse(board_json)
