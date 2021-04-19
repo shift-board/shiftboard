@@ -1,4 +1,3 @@
-from board.views import get_post_dict
 import uuid
 
 from django.contrib.auth.models import User
@@ -6,7 +5,8 @@ from django.test import TestCase, tag
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Board, Image, Post
+from board.models import Board, Image, Post
+from board.views import get_post_dict
 
 # Create your tests here.
 
@@ -254,7 +254,7 @@ class APITests(TestCase):
     def test_get_posts_fully_loaded(self):
         """
         Test for when the client requests more posts than what the database
-        have available. It should return back just the sufficient amount.
+        have available. It should return back whatever is available.
         """
 
         b1 = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi', 'utf-8')).save())
@@ -354,10 +354,10 @@ class APITests(TestCase):
         )
 
         self.assertEqual(res1.status_code, 404)
-        self.assertEqual(res2.status_code, 404)
-        self.assertEqual(res3.status_code, 404)
-        self.assertEqual(res4.status_code, 404)
-        self.assertEqual(res5.status_code, 404)
+        self.assertEqual(res2.status_code, 400)
+        self.assertEqual(res3.status_code, 400)
+        self.assertEqual(res4.status_code, 400)
+        self.assertEqual(res5.status_code, 400)
 
 
 

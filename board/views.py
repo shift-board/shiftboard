@@ -28,7 +28,7 @@ def get_post_dict(post):
     """
     Return a formated dictionary of a post.
 
-    Args:
+    Params:
         post -> `Post`: the post.
     
     JSON fields:
@@ -88,14 +88,18 @@ class GetPosts(View):
 
             # Validating each param.
             board_uuid = UUID(board_uuid, version=4)
-            Board.objects.get(uuid=board_uuid)
             index = int(index)
             amount = int(amount)
         except:
-            return HttpResponse(status=404)
+            return HttpResponse(status=400)
+
+        try:
+            Board.objects.get(uuid=board_uuid)
+        except:
+            return HttpResponse(status=404)   
 
         if (index < 0 or amount < 0):
-            return HttpResponse(status=404)   
+            return HttpResponse(status=400)   
 
         
         posts_query_set = Post.objects \
