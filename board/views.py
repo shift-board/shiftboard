@@ -146,6 +146,10 @@ class GetBoardDetails(View):
             board_uuid = req.GET.get('board')
             # Ensure it is a valid uuid.
             UUID(board_uuid, version=4)
+        except:
+            return HttpResponse(status=400)
+
+        try:
             # Ensure the board exists.
             board = Board.objects.get(uuid=board_uuid)
         except:

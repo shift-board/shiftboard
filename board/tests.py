@@ -180,23 +180,26 @@ class APITests(TestCase):
 
     def test_board_details_invalid_uuid(self):
         """Returns a 404 not found if the board uuid does not exist while trying to get board details."""
+        # Malformed
         res = self.client.get(
             reverse('board:board-details-get'), 
             {'board': 'not-a-uuid'},
             HTTP_ACCEPT='application/json',
         )
+        # UUID doesn't exist
         res2 = self.client.get(
             reverse('board:board-details-get'), 
             {'board': uuid.uuid4()},
             HTTP_ACCEPT='application/json',
         )
+        # Missing parameter
         res3 = self.client.get(
             reverse('board:board-details-get'),
         )
 
-        self.assertEqual(res.status_code, 404)
+        self.assertEqual(res.status_code, 400)
         self.assertEqual(res2.status_code, 404)
-        self.assertEqual(res3.status_code, 404)
+        self.assertEqual(res3.status_code, 400)
 
 
     def test_board_details_invalid_req_method(self):
