@@ -32,6 +32,7 @@ Shiftboard is currently in development! Here is a quick roadmap of what we have 
 ### Shiftboard v1.0
 - [ ] Able to create boards and generate a board URL to visit each board
 - [ ] User account creation to create boards and determine admins
+- [ ] Able to toggle whether or not posts can be uploaded
 
 
 ## Support
