@@ -254,9 +254,11 @@ class GetPostsTests(TestCase):
 
     @tag('core')
     def test_get_posts_fully_loaded(self):
-        """
-        Test for when the client requests more posts than what the database
-        have available. It should return back whatever is available.
+        """ Test for when the client requests more posts than what the database have available. 
+        
+        Ex. If the database only have 10 more posts but the client is requesting 20 posts.
+        
+        It should return back whatever is available.
         """
 
         b1 = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi', 'utf-8')).save())
@@ -296,8 +298,9 @@ class GetPostsTests(TestCase):
 
 
     def test_get_posts_invalid_query(self):
-        """
-        Test for missing or invalid query string such as:
+        """ Test for missing or invalid query string.
+
+        Invalid query strings include:
         - negative numbers 
         - non-existent board uuid
         - etc
