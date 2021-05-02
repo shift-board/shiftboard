@@ -1,5 +1,4 @@
 from uuid import UUID
-
 from django.http import HttpResponse, JsonResponse
 from django.http.response import Http404
 from django.views import View
@@ -25,6 +24,34 @@ class GetMainBoard(View):
         board = '<h1>this is the board</h1>'
         return HttpResponse(board)
 
+def get_post_dict(post):
+    """
+    Return a formated dictionary of a post.
+
+    Params:
+        post -> `Post`: the post.
+    
+    JSON fields:
+        name -> `string`: the author's name.
+        message -> `string`: the message written.
+        photo -> {
+            uuid -> `string`: the photo's uuid.
+            name -> `string`: the photo's name.
+        }
+    """
+    if (post.photo is not None):
+        photo = {
+            'uuid': str(post.photo.uuid),
+            'name': post.photo.name,
+        }
+    else:
+        photo = None
+
+    return {
+        'name': post.name,
+        'message': post.message,
+        'photo': photo,
+    }
 
 class GetPosts(View):
     """
@@ -61,13 +88,34 @@ class GetPosts(View):
         Returns:
             A JSON representation of the posts.
         """
-        board_uuid = req.GET.get('board')
-        index = req.GET.get('index')
-        amount = req.GET.get('amount')
+        try:
+            # Ensure all these parameters exist.
+            board_uuid = req.GET.get('board')
+            index = req.GET.get('index')
+            amount = req.GET.get('amount')
 
-        #TODO: get data from DB
-        posts = {}
-        return JsonResponse(posts)
+            # Validating each param.
+            board_uuid = UUID(board_uuid, version=4)
+            index = int(index)
+            amount = int(amount)
+        except:
+            return HttpResponse(status=400)
+
+        try:
+            Board.objects.get(uuid=board_uuid)
+        except:
+            return HttpResponse(status=404)   
+
+        if (index < 0 or amount < 0):
+            return HttpResponse(status=400)   
+
+        
+        posts_query_set = Post.objects \
+            .filter(associated_board__uuid__exact=board_uuid) \
+            .order_by('-created_at')[index:index+amount]
+
+        posts = [get_post_dict(post) for post in posts_query_set]
+        return JsonResponse(posts, safe=False)
 
 
 class CreatePost(View):

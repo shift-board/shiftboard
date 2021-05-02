@@ -3,8 +3,10 @@ import uuid
 from django.contrib.auth.models import User
 from django.test import TestCase, tag
 from django.urls import reverse
+from django.utils import timezone
 
-from .models import Board, Image, Post
+from board.models import Board, Image, Post
+from board.views import get_post_dict
 
 
 
@@ -152,8 +154,220 @@ class BoardModelTests(TestCase):
         p5.save()
 
 
+class GetPostsTests(TestCase):
+    """Tests the `posts-get` API endpoint."""
 
-class APITests(TestCase):
+    def add_posts(self, board, amount):
+        """Return a list of posts that are added to a board."""
+        posts = []
+        for i in range(amount):
+            p = Post(
+                associated_board=board, 
+                message='hi', 
+                name=str(i), 
+                photo=Image(name=f'photo{i}', photo=bytearray('hi', 'utf-8')).save(),
+                created_at=timezone.now()+timezone.timedelta(seconds=i)
+            )
+            p.save()
+            posts.append(p)
+        return posts
+
+    @tag('core')
+    def test_get_posts(self):
+        """Make sure that it returns proper JSON responses with proper amount of posts."""
+        
+        b = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi', 'utf-8')).save())
+        b.save()
+        posts = self.add_posts(b, 30)
+        
+        # First 10 posts
+        res1 = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(b.uuid),
+                'index': '0',
+                'amount': '10',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+        exp1 = []
+        for i in range(10):
+            p = posts[-i-1]
+            exp1.append(get_post_dict(p))
+        self.assertEqual(res1.json(), exp1)
+
+
+        # Second 10 posts
+        res2 = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(b.uuid),
+                'index': '10',
+                'amount': '10',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+        exp2 = []
+        for i in range(10):
+            p = posts[-i-11]
+            exp2.append(get_post_dict(p))
+        
+        self.assertEqual(res2.json(), exp2)
+    
+    @tag('core')
+    def test_get_posts_optional_fields(self):
+        """Get posts that does have every field"""
+        b = Board(title='hi', description='hello')
+        b.save()
+
+        posts = [
+            Post(associated_board=b, message='hi', created_at=timezone.now()),
+            Post(
+                associated_board=b, 
+                name='shari', 
+                message='cool', 
+                created_at=timezone.now()-timezone.timedelta(1)
+            ),
+            Post(
+                associated_board=b, 
+                name='joseph', 
+                photo=Image(name='i', photo=bytearray('b', 'utf-8')).save(),
+                created_at=timezone.now()-timezone.timedelta(2),
+            ),
+        ]
+        exp = []
+        for p in posts:
+            exp.append(get_post_dict(p))
+            p.save()
+        
+        res = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(b.uuid),
+                'index': '0',
+                'amount': '10',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+        self.assertEqual(res.json(), exp)
+
+
+    @tag('core')
+    def test_get_posts_fully_loaded(self):
+        """ Test for when the client requests more posts than what the database have available. 
+        
+        Ex. If the database only have 10 more posts but the client is requesting 20 posts.
+        
+        It should return back whatever is available.
+        """
+
+        b1 = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi', 'utf-8')).save())
+        b2 = Board(title='hi2', description='hello2', bg=Image(name='i2', photo=bytearray('hi', 'utf-8')).save())
+
+        b1.save()
+        b2.save()
+        posts1 = self.add_posts(b1, 5)
+
+        # board 1 has only 5 posts but the client requested 10
+        res1 = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(b1.uuid),
+                'index': '0',
+                'amount': '10',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+        exp1 = []
+        for i in range(5):
+            exp1.append(get_post_dict(posts1[-i-1]))
+        self.assertEqual(res1.json(), exp1)
+
+        # board 2 has no posts but the client requested 10
+        res2 = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(b2.uuid),
+                'index': '5',
+                'amount': '10',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+        exp2 = []
+        self.assertEqual(res2.json(), exp2)
+
+
+    def test_get_posts_invalid_query(self):
+        """ Test for missing or invalid query string.
+
+        Invalid query strings include:
+        - negative numbers 
+        - non-existent board uuid
+        - etc
+        """
+
+        b1 = Board(title='hi', description='hello', bg=Image(name='i', photo=bytearray('hi', 'utf-8')).save())
+        b1.save()
+
+        # Non-existent board uuid
+        res1 = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(uuid.uuid4()),
+                'index': '0',
+                'amount': '10',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+        # Bad board uuid format
+        res2 = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': 'invalid uuid format',
+                'index': '0',
+                'amount': '10',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+        # Missing query parameters
+        res3 = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(b1.uuid),
+                'index': '12',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+        # Bad parameter values
+        res4 = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(b1.uuid),
+                'index': '12',
+                'amount': 'mango',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+        res5 = self.client.get(
+            reverse('board:posts-get'),
+            {
+                'board': str(b1.uuid),
+                'index': '-12',
+                'amount': '10',
+            },
+            HTTP_ACCEPT='application/json',
+        )
+
+        self.assertEqual(res1.status_code, 404)
+        self.assertEqual(res2.status_code, 400)
+        self.assertEqual(res3.status_code, 400)
+        self.assertEqual(res4.status_code, 400)
+        self.assertEqual(res5.status_code, 400)
+
+
+class GetBoardDetailsTest(TestCase):
+    """Tests the `board-details-get` API endpoint."""
+
     @tag('core')
     def test_get_board_details(self):
         """Get the board details of an existing board."""
@@ -210,19 +424,3 @@ class APITests(TestCase):
         self.assertEqual(res.status_code, 405)
         self.assertEqual(res2.status_code, 405)
 
-        
-
-    @tag('core')
-    def test_get_posts(self):
-        """Make sure that it returns proper JSON responses with proper amount of posts."""
-
-
-
-
-    @tag('core')
-    def test_create_posts(self):
-        """Make sure the data is properly saved to the database and rejects any incorrect data."""
-
-    @tag('core')
-    def test_get_image(self):
-        """Gets the blob of the image that is able to be displayed."""
