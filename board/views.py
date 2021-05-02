@@ -25,6 +25,33 @@ class GetMainBoard(View):
         board = '<h1>this is the board</h1>'
         return HttpResponse(board)
 
+def get_post_dict(post):
+    """Return a formated dictionary of a post.
+
+    Args:
+        post -> `Post`: the post.
+    
+    JSON fields:
+        name -> `string`: the author's name.
+        message -> `string`: the message written.
+        photo -> {
+            uuid -> `string`: the photo's uuid.
+            name -> `string`: the photo's name.
+        }
+    """
+    if (post.photo is not None):
+        photo = {
+            'uuid': str(post.photo.uuid),
+            'name': post.photo.name,
+        }
+    else:
+        photo = None
+
+    return {
+        'name': post.name,
+        'message': post.message,
+        'photo': photo,
+    }
 
 class GetPosts(View):
     """
@@ -94,19 +121,45 @@ class CreatePost(View):
         Fields:
             name -> string: the author of the post, optional.
             message -> string: the message the user wish to convey.
-            photo -> Images: the photos the user uploads.
+            photo -> Image: the photo the user uploads.
         Returns:
-            A response of either status `204` for success or `422` for invalid data.
+            Invalid form data: 400
+            Board UUID not found: 404
+            Success: JSON representation of the post
         """
+
         form = PostForm(req.POST, req.FILES)
 
         if (form.is_valid()):
-            #TODO: save form data to database
-
-            # 204 is an empty response with no content, meaning that the operation was a success
-            return HttpResponse(status=204)
-        # 422 meaning the data is valid but does not match business model
-        return HttpResponse(status=422)
+            try:
+                board_uuid = form.cleaned_data['board']
+                board = Board.objects.get(uuid=board_uuid)
+            except:
+                return HttpResponse(status=404, headers={
+                    'Content-Length': '0',
+                    'Content-Type': 'application/json'
+                })
+            
+            img_file = form.files.get('photo') 
+            if (img_file is None):
+                img = None
+            else:
+                img = Image(name=img_file.name, photo=img_file.file.read())
+                img.save()
+            
+            post = Post(
+                associated_board=board, 
+                name=form.cleaned_data['name'],
+                message=form.cleaned_data['message'],
+                photo=img
+            )
+            post.save()
+            return JsonResponse(get_post_dict(post))
+            
+        return HttpResponse(status=400, headers={
+            'Content-Length': '0',
+            'Content-Type': 'application/json'
+        })
 
 class GetImage(View):
     """
