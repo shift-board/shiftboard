@@ -19,8 +19,7 @@ class PostForm(forms.Form):
     photo = forms.ImageField(required=False)
 
     def clean(self):
-        """
-        Cleans the form data and make sure all fields are valid.
+        """Cleans the form data and make sure all fields are valid.
 
         First clean the fields based on the parent checking functions of `django.forms.Form`.
         However, since all fields are marked as not required, but at least either one of
@@ -30,7 +29,7 @@ class PostForm(forms.Form):
         The data is invalid if both `photo` field and `message` field do not exist.
         """
         cleaned_data = super().clean()
-        if (cleaned_data.get('message') is '' and self.files.get('photo') is None):
+        if (cleaned_data.get('message') == '' and self.files.get('photo') is None):
             error = 'At least one photo or message must exist.'
             self.add_error('message', error)
             self.add_error('photo', error)

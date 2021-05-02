@@ -26,8 +26,7 @@ class GetMainBoard(View):
         return HttpResponse(board)
 
 def get_post_dict(post):
-    """
-    Return a formated dictionary of a post.
+    """Return a formated dictionary of a post.
 
     Args:
         post -> `Post`: the post.
