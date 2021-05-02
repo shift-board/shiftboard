@@ -1,8 +1,13 @@
+from io import BytesIO
+from PIL import Image as PImage
 import uuid
+from django import db
 
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, tag
 from django.urls import reverse
+
 
 from .models import Board, Image, Post
 
@@ -223,3 +228,42 @@ class APITests(TestCase):
     @tag('core')
     def test_get_image(self):
         """Gets the blob of the image that is able to be displayed."""
+
+
+
+
+class GetImageTests(TestCase):
+    """Tests for `image-get` API endpoint."""
+
+
+    @tag('core')
+    def test_get_image(self):
+        """Gets an image that exists."""
+        img = bytearray("1", "utf-8")
+
+        db_img = Image(name='test.png', photo=img)
+        db_img.save()
+
+        res = self.client.get(
+            reverse('board:image-get', args=[str(db_img.uuid)]),
+            HTTP_ACCEPT='application/octet-stream',
+        )
+
+        self.assertEqual(res.content, img)
+
+
+    def test_get_image_invalid(self):
+        """Gets an image that does not exist."""
+
+        res1 = self.client.get(
+            reverse('board:image-get', args=['invalidUUID']),
+            HTTP_ACCEPT='application/octet-stream',
+        )
+
+        res2 = self.client.get(
+            reverse('board:image-get', args=[str(uuid.uuid4())]),
+            HTTP_ACCEPT='application/octet-stream',
+        )
+
+        self.assertEqual(res1.status_code, 400)
+        self.assertEqual(res2.status_code, 404)

@@ -116,12 +116,23 @@ class GetImage(View):
     Once a GET request is sent to this view, it will respond with the image BLOB, using the 
     specified static image URI as a locator. If the image URI cannot be found in the
     database, a 404 will be returned.
+
+    Returns `application/octet-stream`.
     """
 
-    def get(self, req, image):
+    def get(self, req, image_uuid):
         """Gets the requested image from the specified image URI."""
-        #TODO: return image blob and fix docstring once finished
-        return HttpResponse(f'<h1>wow u got image {image}</h1>')
+        try:
+            UUID(image_uuid, version=4)
+        except:
+            return HttpResponse(status=400)
+
+        try:
+            image = Image.objects.get(uuid=image_uuid)
+        except:
+            return HttpResponse(status=404)
+
+        return HttpResponse(image.photo, content_type='application/octet-stream')
 
 
 class GetBoardDetails(View):
